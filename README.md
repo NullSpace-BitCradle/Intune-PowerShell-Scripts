@@ -65,7 +65,7 @@ Scripts that interact with Microsoft Graph API require:
 1. Clone or download this repository:
 
    ```powershell
-   git clone https://github.com/yourusername/Intune-PowerShell-Scripts.git
+   git clone https://github.com/NullSpace-BitCradle/Intune-PowerShell-Scripts.git
    cd Intune-PowerShell-Scripts
    ```
 
