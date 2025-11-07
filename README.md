@@ -867,7 +867,3 @@ For issues or questions:
 3. Verify prerequisites and permissions
 4. Review logs for detailed error information
 5. Use `-Verbose` parameter for detailed output
-
----
-
-**Last Updated:** 2024
