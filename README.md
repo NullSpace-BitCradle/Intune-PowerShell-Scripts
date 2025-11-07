@@ -856,7 +856,7 @@ When contributing to this repository:
 
 ## License
 
-This collection is provided as-is for use in managing Microsoft Intune deployments. Use at your own risk.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
