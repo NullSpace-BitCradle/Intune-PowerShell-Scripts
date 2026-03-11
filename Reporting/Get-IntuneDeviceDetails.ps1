@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-    Retrieves compliance status for Intune-managed devices.
+    Retrieves detailed information about Intune-managed devices.
 
 .DESCRIPTION
-    This script connects to Microsoft Graph API and retrieves compliance status information
-    for Intune-managed devices. It can query compliance for a specific device, all devices,
-    or devices for a specific user. The script displays compliance policy assignments,
-    compliance state, and any non-compliance reasons.
+    This script connects to Microsoft Graph API and retrieves comprehensive information
+    about Intune-managed devices including enrollment details, last sync time, management
+    state, hardware information, and device configuration. It can query a specific device
+    by ID or retrieve all devices.
 
 .PARAMETER AppId
     The Application (Client) ID of your Entra ID registered app. Can also be provided via
@@ -20,27 +20,26 @@
     INTUNE_CLIENT_SECRET environment variable.
 
 .PARAMETER DeviceId
-    Optional. The device ID to query compliance for. If not specified, retrieves all devices.
+    Optional. The device ID to query. If not specified, retrieves all devices.
 
-.PARAMETER UserPrincipalName
-    Optional. The user principal name to query devices for. If specified, retrieves compliance
-    for all devices owned by this user.
+.PARAMETER DeviceName
+    Optional. The device name to search for. Partial matches are supported.
 
 .PARAMETER ExportPath
     Optional. Path to export results to CSV file. If not specified, results are displayed only.
 
 .EXAMPLE
-    .\Get-IntuneDeviceCompliance.ps1 -AppId 'your-app-id' -TenantId 'your-tenant-id' -ClientSecret 'your-secret'
+    .\Get-IntuneDeviceDetails.ps1 -AppId 'your-app-id' -TenantId 'your-tenant-id' -ClientSecret 'your-secret'
 
 .EXAMPLE
-    .\Get-IntuneDeviceCompliance.ps1 -DeviceId 'device-guid' -AppId 'your-app-id' -TenantId 'your-tenant-id' -ClientSecret 'your-secret'
+    .\Get-IntuneDeviceDetails.ps1 -DeviceId 'device-guid' -AppId 'your-app-id' -TenantId 'your-tenant-id' -ClientSecret 'your-secret'
 
 .EXAMPLE
-    .\Get-IntuneDeviceCompliance.ps1 -UserPrincipalName 'user@domain.com' -ExportPath 'C:\Temp\ComplianceReport.csv'
+    .\Get-IntuneDeviceDetails.ps1 -DeviceName 'LAPTOP-01' -ExportPath 'C:\Temp\DeviceDetails.csv'
 
 .NOTES
     Requires: Microsoft.Graph PowerShell module
-    Requires: Entra ID App Registration with DeviceManagementManagedDevices.Read.All and DeviceManagementConfiguration.Read.All permissions
+    Requires: Entra ID App Registration with DeviceManagementManagedDevices.Read.All permission
 #>
 
 [CmdletBinding()]
@@ -60,7 +59,7 @@ param(
     [string]$DeviceId,
     
     [Parameter(Mandatory=$false)]
-    [string]$UserPrincipalName,
+    [string]$DeviceName,
     
     [Parameter(Mandatory=$false)]
     [string]$ExportPath,
@@ -125,23 +124,19 @@ if ($appid -match '^<.*>$' -or $tenantid -match '^<.*>$' -or $clientsecret -matc
 }
 
 # Validate DeviceId format if provided
-if ($DeviceId -and -not ($DeviceId -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')) {
-    Write-Error "DeviceId must be a valid GUID format."
-    exit 1
+if ($DeviceId) {
+    if (-not ($DeviceId -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')) {
+        Write-Error "DeviceId must be a valid GUID format."
+        exit 1
+    }
 }
 
-# Validate UserPrincipalName format if provided
-if ($UserPrincipalName -and -not ($UserPrincipalName -match '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')) {
-    Write-Error "UserPrincipalName must be a valid email address format."
-    exit 1
-}
-
-# Sanitize UserPrincipalName input for OData query
-if ($UserPrincipalName) {
+# Sanitize DeviceName input for OData query
+if ($DeviceName) {
     # Remove potentially dangerous characters from OData filter
-    $UserPrincipalName = $UserPrincipalName -replace "[';]", ""
-    if ([string]::IsNullOrWhiteSpace($UserPrincipalName)) {
-        Write-Error "UserPrincipalName cannot be empty after sanitization."
+    $DeviceName = $DeviceName -replace "[';]", ""
+    if ([string]::IsNullOrWhiteSpace($DeviceName)) {
+        Write-Error "DeviceName cannot be empty after sanitization."
         exit 1
     }
 }
@@ -178,7 +173,7 @@ if ($ExportPath) {
 try
 {
     # Import shared module for Graph API utilities
-    Import-Module "$PSScriptRoot\IntuneCommon.psm1" -Force -ErrorAction Stop
+    Import-Module "$PSScriptRoot\..\Common\IntuneCommon.psm1" -Force -ErrorAction Stop
 
     # Connect to Microsoft Graph API using app registration credentials
     # This authenticates the script to access Intune data via Graph API
@@ -205,115 +200,117 @@ try
     
     Write-Host "Successfully connected to Microsoft Graph API." -ForegroundColor Green
     
-    # Initialize array to store compliance results
-    # This will hold all compliance information retrieved from Graph API
-    $complianceResults = @()
+    # Initialize array to store device details
+    # This will hold all device information retrieved from Graph API
+    $deviceDetails = @()
     
     # Determine which devices to query based on provided parameters
     # If DeviceId is specified, query only that device
-    # If UserPrincipalName is specified, query all devices for that user
+    # If DeviceName is specified, search for devices matching that name
     # Otherwise, query all devices
     if ($DeviceId) {
-        Write-Host "Querying compliance for device: $DeviceId" -ForegroundColor Yellow
+        Write-Host "Querying details for device: $DeviceId" -ForegroundColor Yellow
         
-        # Query device compliance status for specific device
-        # The Graph API endpoint returns compliance state and policy assignments
-        $deviceComplianceUrl = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices('$DeviceId')?`$expand=detectedApps"
-        $device = Invoke-GraphApiWithRetry -Uri $deviceComplianceUrl -Headers $headers -Method Get
+        # Query device details for specific device
+        # The Graph API endpoint returns comprehensive device information
+        $deviceUrl = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices('$DeviceId')"
+        $device = Invoke-GraphApiWithRetry -Uri $deviceUrl -Headers $headers -Method Get
         
         if ($null -eq $device) {
             Write-Error "Device not found or API returned null response for device ID: $DeviceId"
             exit 1
         }
         
-        # Query compliance policies for this device
-        # Get all compliance policies that apply to this device
-        $compliancePoliciesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies"
-        $compliancePolicies = Invoke-GraphApiWithRetry -Uri $compliancePoliciesUrl -Headers $headers -Method Get
-        
-        # Handle null or empty response
-        $compliancePolicyNames = @()
-        if ($null -ne $compliancePolicies -and $null -ne $compliancePolicies.value) {
-            $compliancePolicyNames = $compliancePolicies.value | ForEach-Object { $_.displayName }
-        }
-        
-        # Create compliance result object
-        $complianceResult = [PSCustomObject]@{
+        # Create device detail object
+        $deviceDetail = [PSCustomObject]@{
             DeviceId = $device.id
             DeviceName = $device.deviceName
             UserPrincipalName = $device.userPrincipalName
-            ComplianceState = $device.complianceState
+            UserDisplayName = $device.userDisplayName
+            EnrollmentDateTime = $device.enrolledDateTime
             LastSyncDateTime = $device.lastSyncDateTime
-            OSVersion = $device.osVersion
+            ComplianceState = $device.complianceState
             ManagementAgent = $device.managementAgent
-            CompliancePolicies = ($compliancePolicyNames) -join '; '
+            OperatingSystem = $device.operatingSystem
+            OSVersion = $device.osVersion
+            Manufacturer = $device.manufacturer
+            Model = $device.model
+            SerialNumber = $device.serialNumber
+            TotalStorageSpaceInBytes = $device.totalStorageSpaceInBytes
+            FreeStorageSpaceInBytes = $device.freeStorageSpaceInBytes
+            ManagedDeviceName = $device.managedDeviceName
+            DeviceEnrollmentType = $device.deviceEnrollmentType
+            IsSupervised = $device.isSupervised
+            IsEncrypted = $device.isEncrypted
+            JailBroken = $device.jailBroken
+            PhoneNumber = $device.phoneNumber
+            IMEI = $device.imei
+            EASDeviceId = $device.easDeviceId
+            ExchangeAccessState = $device.exchangeAccessState
+            ExchangeAccessStateReason = $device.exchangeAccessStateReason
         }
         
-        $complianceResults += $complianceResult
+        $deviceDetails += $deviceDetail
     }
-    elseif ($UserPrincipalName) {
-        Write-Host "Querying compliance for devices owned by: $UserPrincipalName" -ForegroundColor Yellow
+    elseif ($DeviceName) {
+        Write-Host "Searching for devices with name: $DeviceName" -ForegroundColor Yellow
         
-        # Query all devices for the specified user
-        # Filter devices by user principal name
-        $devicesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?`$filter=userPrincipalName eq '$UserPrincipalName'"
+        # Query all devices and filter by name
+        # Filter devices by device name (supports partial matches)
+        $devicesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices?`$filter=contains(deviceName,'$DeviceName')"
         $devices = Invoke-GraphApiWithRetry -Uri $devicesUrl -Headers $headers -Method Get
         
         # Handle null or empty response
         if ($null -eq $devices -or $null -eq $devices.value) {
-            Write-Warning "No devices found for user: $UserPrincipalName"
+            Write-Warning "No devices found matching name: $DeviceName"
             $devices = @{ value = @() }
         }
         
-        # Query compliance policies
-        $compliancePoliciesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies"
-        $compliancePolicies = Invoke-GraphApiWithRetry -Uri $compliancePoliciesUrl -Headers $headers -Method Get
-        
-        # Handle null or empty response
-        $compliancePolicyNames = @()
-        if ($null -ne $compliancePolicies -and $null -ne $compliancePolicies.value) {
-            $compliancePolicyNames = $compliancePolicies.value | ForEach-Object { $_.displayName }
-        }
-        
+        # Process each matching device
         foreach ($device in $devices.value) {
-            $complianceResult = [PSCustomObject]@{
+            $deviceDetail = [PSCustomObject]@{
                 DeviceId = $device.id
                 DeviceName = $device.deviceName
                 UserPrincipalName = $device.userPrincipalName
-                ComplianceState = $device.complianceState
+                UserDisplayName = $device.userDisplayName
+                EnrollmentDateTime = $device.enrolledDateTime
                 LastSyncDateTime = $device.lastSyncDateTime
-                OSVersion = $device.osVersion
+                ComplianceState = $device.complianceState
                 ManagementAgent = $device.managementAgent
-                CompliancePolicies = ($compliancePolicyNames) -join '; '
+                OperatingSystem = $device.operatingSystem
+                OSVersion = $device.osVersion
+                Manufacturer = $device.manufacturer
+                Model = $device.model
+                SerialNumber = $device.serialNumber
+                TotalStorageSpaceInBytes = $device.totalStorageSpaceInBytes
+                FreeStorageSpaceInBytes = $device.freeStorageSpaceInBytes
+                ManagedDeviceName = $device.managedDeviceName
+                DeviceEnrollmentType = $device.deviceEnrollmentType
+                IsSupervised = $device.isSupervised
+                IsEncrypted = $device.isEncrypted
+                JailBroken = $device.jailBroken
+                PhoneNumber = $device.phoneNumber
+                IMEI = $device.imei
+                EASDeviceId = $device.easDeviceId
+                ExchangeAccessState = $device.exchangeAccessState
+                ExchangeAccessStateReason = $device.exchangeAccessStateReason
             }
             
-            $complianceResults += $complianceResult
+            $deviceDetails += $deviceDetail
         }
     }
     else {
-        Write-Host "Querying compliance for all devices..." -ForegroundColor Yellow
+        Write-Host "Querying details for all devices..." -ForegroundColor Yellow
         
         # Query all managed devices from Intune
         $devicesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/managedDevices"
         $devices = Invoke-GraphApiWithRetry -Uri $devicesUrl -Headers $headers -Method Get
         
-        # Handle null or empty response and pagination
+        # Handle pagination
         $allDevices = @()
         if ($null -ne $devices -and $null -ne $devices.value) {
             $allDevices += $devices.value
         }
-        
-        # Query compliance policies
-        $compliancePoliciesUrl = "https://graph.microsoft.com/v1.0/deviceManagement/deviceCompliancePolicies"
-        $compliancePolicies = Invoke-GraphApiWithRetry -Uri $compliancePoliciesUrl -Headers $headers -Method Get
-        
-        # Extract policy names from response
-        $compliancePolicyNames = @()
-        if ($null -ne $compliancePolicies -and $null -ne $compliancePolicies.value) {
-            $compliancePolicyNames = $compliancePolicies.value | ForEach-Object { $_.displayName }
-        }
-        
-        # Handle pagination for devices
         $pageCount = 1
         while ($null -ne $devices -and $null -ne $devices.'@odata.nextLink') {
             $pageCount++
@@ -325,82 +322,99 @@ try
         }
         Write-Progress -Activity "Retrieving devices" -Completed
         
+        # Process each device
         foreach ($device in $allDevices) {
-            $complianceResult = [PSCustomObject]@{
+            $deviceDetail = [PSCustomObject]@{
                 DeviceId = $device.id
                 DeviceName = $device.deviceName
                 UserPrincipalName = $device.userPrincipalName
-                ComplianceState = $device.complianceState
+                UserDisplayName = $device.userDisplayName
+                EnrollmentDateTime = $device.enrolledDateTime
                 LastSyncDateTime = $device.lastSyncDateTime
-                OSVersion = $device.osVersion
+                ComplianceState = $device.complianceState
                 ManagementAgent = $device.managementAgent
-                CompliancePolicies = ($compliancePolicyNames) -join '; '
+                OperatingSystem = $device.operatingSystem
+                OSVersion = $device.osVersion
+                Manufacturer = $device.manufacturer
+                Model = $device.model
+                SerialNumber = $device.serialNumber
+                TotalStorageSpaceInBytes = $device.totalStorageSpaceInBytes
+                FreeStorageSpaceInBytes = $device.freeStorageSpaceInBytes
+                ManagedDeviceName = $device.managedDeviceName
+                DeviceEnrollmentType = $device.deviceEnrollmentType
+                IsSupervised = $device.isSupervised
+                IsEncrypted = $device.isEncrypted
+                JailBroken = $device.jailBroken
+                PhoneNumber = $device.phoneNumber
+                IMEI = $device.imei
+                EASDeviceId = $device.easDeviceId
+                ExchangeAccessState = $device.exchangeAccessState
+                ExchangeAccessStateReason = $device.exchangeAccessStateReason
             }
             
-            $complianceResults += $complianceResult
+            $deviceDetails += $deviceDetail
         }
     }
     
     # Display results
-    Write-Host "`nCompliance Results:" -ForegroundColor Cyan
-    Write-Host "===================" -ForegroundColor Cyan
+    Write-Host "`nDevice Details:" -ForegroundColor Cyan
+    Write-Host "===============" -ForegroundColor Cyan
     
-    if ($complianceResults.Count -eq 0) {
+    if ($deviceDetails.Count -eq 0) {
         Write-Host "No devices found matching the specified criteria." -ForegroundColor Yellow
     }
     else {
-        # Display each compliance result
-        foreach ($result in $complianceResults) {
-            Write-Host "`nDevice: $($result.DeviceName)" -ForegroundColor Green
-            Write-Host "  Device ID: $($result.DeviceId)" -ForegroundColor White
-            Write-Host "  User: $($result.UserPrincipalName)" -ForegroundColor White
-            Write-Host "  Compliance State: $($result.ComplianceState)" -ForegroundColor $(if ($result.ComplianceState -eq 'Compliant') { 'Green' } else { 'Red' })
-            Write-Host "  Last Sync: $($result.LastSyncDateTime)" -ForegroundColor White
-            Write-Host "  OS Version: $($result.OSVersion)" -ForegroundColor White
-            Write-Host "  Management Agent: $($result.ManagementAgent)" -ForegroundColor White
+        # Display each device's details
+        foreach ($detail in $deviceDetails) {
+            Write-Host "`nDevice: $($detail.DeviceName)" -ForegroundColor Green
+            Write-Host "  Device ID: $($detail.DeviceId)" -ForegroundColor White
+            Write-Host "  User: $($detail.UserPrincipalName) ($($detail.UserDisplayName))" -ForegroundColor White
+            Write-Host "  Operating System: $($detail.OperatingSystem) $($detail.OSVersion)" -ForegroundColor White
+            Write-Host "  Manufacturer: $($detail.Manufacturer)" -ForegroundColor White
+            Write-Host "  Model: $($detail.Model)" -ForegroundColor White
+            Write-Host "  Serial Number: $($detail.SerialNumber)" -ForegroundColor White
+            Write-Host "  Enrollment Date: $($detail.EnrollmentDateTime)" -ForegroundColor White
+            Write-Host "  Last Sync: $($detail.LastSyncDateTime)" -ForegroundColor White
+            Write-Host "  Compliance State: $($detail.ComplianceState)" -ForegroundColor $(if ($detail.ComplianceState -eq 'Compliant') { 'Green' } else { 'Red' })
+            Write-Host "  Management Agent: $($detail.ManagementAgent)" -ForegroundColor White
+            Write-Host "  Enrollment Type: $($detail.DeviceEnrollmentType)" -ForegroundColor White
+            Write-Host "  Supervised: $($detail.IsSupervised)" -ForegroundColor White
+            Write-Host "  Encrypted: $($detail.IsEncrypted)" -ForegroundColor White
+            if ($detail.TotalStorageSpaceInBytes) {
+                $totalGB = [math]::Round($detail.TotalStorageSpaceInBytes / 1GB, 2)
+                $freeGB = [math]::Round($detail.FreeStorageSpaceInBytes / 1GB, 2)
+                Write-Host "  Storage: $freeGB GB free of $totalGB GB total" -ForegroundColor White
+            }
         }
         
         # Export to CSV if path is specified
         if ($ExportPath) {
-            # Validate export path (should have been validated earlier, but double-check)
+            # Create directory if it doesn't exist
             $exportDirectory = Split-Path -Path $ExportPath -Parent
             if ($exportDirectory -and -not (Test-Path -Path $exportDirectory)) {
-                try {
-                    New-Item -Path $exportDirectory -ItemType Directory -Force | Out-Null
-                    Write-Verbose "Created export directory: $exportDirectory"
-                }
-                catch {
-                    Write-Error "Cannot create export directory: $exportDirectory. Error: $($_.Exception.Message)"
-                    exit 1
-                }
+                New-Item -Path $exportDirectory -ItemType Directory -Force | Out-Null
             }
             
             # Export results to CSV file
-            try {
-                $complianceResults | Export-Csv -Path $ExportPath -NoTypeInformation -Encoding UTF8
-                Write-Host "`nResults exported to: $ExportPath" -ForegroundColor Green
-                
-                # Verify the export file was created successfully
-                if (-not (Test-Path -Path $ExportPath)) {
-                    Write-Error "Export file was not created successfully at: $ExportPath"
-                    exit 1
-                }
-            }
-            catch {
-                Write-Error "Get-IntuneDeviceCompliance: Failed to export results to CSV - $($_.Exception.Message)"
+            $deviceDetails | Export-Csv -Path $ExportPath -NoTypeInformation -Encoding UTF8
+            Write-Host "`nResults exported to: $ExportPath" -ForegroundColor Green
+            
+            # Verify the export file was created successfully
+            if (-not (Test-Path -Path $ExportPath)) {
+                Write-Error "Export file was not created successfully at: $ExportPath"
                 exit 1
             }
         }
     }
     
-    Write-Host "`nQuery completed successfully." -ForegroundColor Green
+    Write-Host "`nQuery completed successfully. Found $($deviceDetails.Count) device(s)." -ForegroundColor Green
 }
 # Error handling block - catches exceptions during Graph API calls
 catch
 {
     # Capture and display the error message with script name for context
     $errMsg = $_.Exception.Message
-    Write-Error "Get-IntuneDeviceCompliance: Failed to retrieve device compliance information - $errMsg"
+    Write-Error "Get-IntuneDeviceDetails: Failed to retrieve device details - $errMsg"
     
     # Provide additional error context if available
     if ($_.Exception.Response) {

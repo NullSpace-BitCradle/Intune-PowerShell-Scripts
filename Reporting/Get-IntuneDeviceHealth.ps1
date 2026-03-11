@@ -115,7 +115,7 @@ if ($DeviceId -and -not ($DeviceId -match '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-
 try
 {
     # Import shared module for Graph API utilities
-    Import-Module "$PSScriptRoot\IntuneCommon.psm1" -Force -ErrorAction Stop
+    Import-Module "$PSScriptRoot\..\Common\IntuneCommon.psm1" -Force -ErrorAction Stop
 
     # Connect to Microsoft Graph API using app registration credentials
     # This authenticates the script to access Intune data via Graph API

@@ -137,7 +137,7 @@ if ($exportDirectory -and -not (Test-Path -Path $exportDirectory)) {
 try
 {
     # Import shared module for Graph API utilities
-    Import-Module "$PSScriptRoot\IntuneCommon.psm1" -Force -ErrorAction Stop
+    Import-Module "$PSScriptRoot\..\Common\IntuneCommon.psm1" -Force -ErrorAction Stop
 
     # Connect to Microsoft Graph API using app registration credentials
     # This authenticates the script to access Intune data via Graph API

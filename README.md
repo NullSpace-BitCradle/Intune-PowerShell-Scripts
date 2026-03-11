@@ -2,11 +2,12 @@
 
 A comprehensive collection of PowerShell scripts for managing, troubleshooting, and reporting on Microsoft Intune deployments. These scripts provide detection, remediation, reporting, and management capabilities for Intune-managed devices and policies.
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+- [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Script Categories](#script-categories)
   - [Detection & Remediation](#detection--remediation)
@@ -72,7 +73,7 @@ Scripts that interact with Microsoft Graph API require:
 2. Import the common module (optional, but recommended):
 
    ```powershell
-   Import-Module .\IntuneCommon.psm1
+   Import-Module .\Common\IntuneCommon.psm1
    ```
 
 3. Configure credentials using environment variables (recommended):
@@ -83,12 +84,44 @@ Scripts that interact with Microsoft Graph API require:
    $env:INTUNE_CLIENT_SECRET = "your-client-secret"
    ```
 
+## Project Structure
+
+```
+Intune_PowerShell_Scripts/
+├── Common/
+│   └── IntuneCommon.psm1                        # Shared functions module
+├── Detection/
+│   ├── Detect-MultipleIntuneMDMCert.ps1          # Detect duplicate MDM certificates
+│   └── Detect-OfficeUpdateChannel.ps1            # Detect Office update channel
+├── Remediation/
+│   ├── Repair-MultipleIntuneMDMCert.ps1          # Remove duplicate MDM certificates
+│   └── Set-OfficeUpdateChannel.ps1               # Set Office to Semi-Annual channel
+├── Reporting/
+│   ├── Export-IntuneDeviceReport.ps1             # Export comprehensive device reports
+│   ├── Get-IntuneAllAppsAssignmentDetails.ps1    # Retrieve app assignment details
+│   ├── Get-IntuneDeviceCompliance.ps1            # Retrieve device compliance status
+│   ├── Get-IntuneDeviceDetails.ps1               # Retrieve device details
+│   ├── Get-IntuneDeviceHealth.ps1                # Perform device health checks
+│   ├── Get-IntunePolicyAssignments.ps1           # Retrieve policy assignments
+│   └── Get-IntuneWin32AppDetails.ps1             # Retrieve Win32 app details
+├── Security/
+│   ├── Disable-PrintSpoolerService.ps1           # Disable Print Spooler service
+│   ├── Disable-SmartCardLogonEnforcement.ps1     # Disable smart card logon enforcement
+│   ├── Enable-PrintSpoolerService.ps1            # Enable Print Spooler service
+│   └── Enable-SmartCardLogonEnforcement.ps1      # Enable smart card logon enforcement
+└── Troubleshooting/
+    ├── Get-IntuneDeviceLogs.ps1                  # Collect Intune-related logs
+    ├── Start-MDMSync.ps1                         # Initiate MDM sync session
+    ├── Test-IntuneConnectivity.ps1               # Test connectivity to Intune endpoints
+    └── Test-IntuneEnrollment.ps1                 # Test device enrollment status
+```
+
 ## Quick Start
 
 ### Example: Get Device Details
 
 ```powershell
-.\Get-IntuneDeviceDetails.ps1 `
+.\Reporting\Get-IntuneDeviceDetails.ps1 `
     -AppId $env:INTUNE_APP_ID `
     -TenantId $env:INTUNE_TENANT_ID `
     -ClientSecret $env:INTUNE_CLIENT_SECRET `
@@ -98,13 +131,13 @@ Scripts that interact with Microsoft Graph API require:
 ### Example: Test Device Enrollment
 
 ```powershell
-.\Test-IntuneEnrollment.ps1
+.\Troubleshooting\Test-IntuneEnrollment.ps1
 ```
 
 ### Example: Check Device Health
 
 ```powershell
-.\Get-IntuneDeviceHealth.ps1 `
+.\Reporting\Get-IntuneDeviceHealth.ps1 `
     -AppId $env:INTUNE_APP_ID `
     -TenantId $env:INTUNE_TENANT_ID `
     -ClientSecret $env:INTUNE_CLIENT_SECRET `
@@ -115,16 +148,16 @@ Scripts that interact with Microsoft Graph API require:
 
 ### Detection & Remediation
 
-Scripts designed for use in Intune compliance policies and remediation scripts.
+Scripts designed for use in Intune compliance policies and remediation scripts. Detection scripts live in the `Detection\` directory; remediation scripts live in the `Remediation\` directory.
 
-#### `Detect-MultipleIntuneMDMCert.ps1`
+#### `Detect-MultipleIntuneMDMCert.ps1` — `Detection\`
 
 Detects multiple Intune MDM Device CA certificates in the Local Machine certificate store. Used as a detection script in Intune compliance policies.
 
 **Usage:**
 
 ```powershell
-.\Detect-MultipleIntuneMDMCert.ps1
+.\Detection\Detect-MultipleIntuneMDMCert.ps1
 ```
 
 **Exit Codes:**
@@ -138,14 +171,14 @@ Detects multiple Intune MDM Device CA certificates in the Local Machine certific
 
 ---
 
-#### `Repair-MultipleIntuneMDMCert.ps1`
+#### `Repair-MultipleIntuneMDMCert.ps1` — `Remediation\`
 
 Remediation script that removes duplicate Intune MDM Device CA certificates, keeping only the most recent one.
 
 **Usage:**
 
 ```powershell
-.\Repair-MultipleIntuneMDMCert.ps1 [-WhatIf]
+.\Remediation\Repair-MultipleIntuneMDMCert.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -161,14 +194,14 @@ Remediation script that removes duplicate Intune MDM Device CA certificates, kee
 
 ---
 
-#### `Detect-OfficeUpdateChannel.ps1`
+#### `Detect-OfficeUpdateChannel.ps1` — `Detection\`
 
 Verifies if Microsoft Office is using the Semi-Annual update channel and is on the latest version. Used as a detection script in Intune compliance policies.
 
 **Usage:**
 
 ```powershell
-.\Detect-OfficeUpdateChannel.ps1
+.\Detection\Detect-OfficeUpdateChannel.ps1
 ```
 
 **Exit Codes:**
@@ -184,14 +217,14 @@ Verifies if Microsoft Office is using the Semi-Annual update channel and is on t
 
 ---
 
-#### `Set-OfficeUpdateChannel.ps1`
+#### `Set-OfficeUpdateChannel.ps1` — `Remediation\`
 
 Remediation script that configures Microsoft Office to use the Semi-Annual update channel and triggers an update to the latest version.
 
 **Usage:**
 
 ```powershell
-.\Set-OfficeUpdateChannel.ps1 [-WhatIf]
+.\Remediation\Set-OfficeUpdateChannel.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -209,9 +242,9 @@ Remediation script that configures Microsoft Office to use the Semi-Annual updat
 
 ### Device Management
 
-Scripts for managing and monitoring Intune-enrolled devices.
+Scripts for managing and monitoring Intune-enrolled devices. These scripts live in either the `Reporting\` or `Troubleshooting\` directory depending on function.
 
-#### `Get-IntuneDeviceDetails.ps1`
+#### `Get-IntuneDeviceDetails.ps1` — `Reporting\`
 
 Retrieves comprehensive information about Intune-managed devices including enrollment details, hardware information, compliance state, and management agent.
 
@@ -219,16 +252,16 @@ Retrieves comprehensive information about Intune-managed devices including enrol
 
 ```powershell
 # Get all devices
-.\Get-IntuneDeviceDetails.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneDeviceDetails.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Get specific device
-.\Get-IntuneDeviceDetails.ps1 -DeviceId 'device-guid' -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneDeviceDetails.ps1 -DeviceId 'device-guid' -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Search by device name
-.\Get-IntuneDeviceDetails.ps1 -DeviceName 'LAPTOP-*' -ExportPath 'C:\Reports\Devices.csv'
+.\Reporting\Get-IntuneDeviceDetails.ps1 -DeviceName 'LAPTOP-*' -ExportPath 'C:\Reports\Devices.csv'
 
 # Export to CSV
-.\Get-IntuneDeviceDetails.ps1 -ExportPath 'C:\Reports\Devices.csv' -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneDeviceDetails.ps1 -ExportPath 'C:\Reports\Devices.csv' -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 ```
 
 **Parameters:**
@@ -242,7 +275,7 @@ Retrieves comprehensive information about Intune-managed devices including enrol
 
 ---
 
-#### `Get-IntuneDeviceCompliance.ps1`
+#### `Get-IntuneDeviceCompliance.ps1` — `Reporting\`
 
 Retrieves compliance status for Intune-managed devices, including compliance policy assignments and compliance state.
 
@@ -250,13 +283,13 @@ Retrieves compliance status for Intune-managed devices, including compliance pol
 
 ```powershell
 # Get compliance for all devices
-.\Get-IntuneDeviceCompliance.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneDeviceCompliance.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Get compliance for specific device
-.\Get-IntuneDeviceCompliance.ps1 -DeviceId 'device-guid' -ExportPath 'C:\Reports\Compliance.csv'
+.\Reporting\Get-IntuneDeviceCompliance.ps1 -DeviceId 'device-guid' -ExportPath 'C:\Reports\Compliance.csv'
 
 # Get compliance for user's devices
-.\Get-IntuneDeviceCompliance.ps1 -UserPrincipalName 'user@domain.com' -ExportPath 'C:\Reports\UserCompliance.csv'
+.\Reporting\Get-IntuneDeviceCompliance.ps1 -UserPrincipalName 'user@domain.com' -ExportPath 'C:\Reports\UserCompliance.csv'
 ```
 
 **Parameters:**
@@ -270,7 +303,7 @@ Retrieves compliance status for Intune-managed devices, including compliance pol
 
 ---
 
-#### `Get-IntuneDeviceHealth.ps1`
+#### `Get-IntuneDeviceHealth.ps1` — `Reporting\`
 
 Performs comprehensive health checks on Intune-managed devices including enrollment status, sync status, compliance state, management agent, and storage space.
 
@@ -278,10 +311,10 @@ Performs comprehensive health checks on Intune-managed devices including enrollm
 
 ```powershell
 # Check health for all devices
-.\Get-IntuneDeviceHealth.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneDeviceHealth.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Check health for specific device
-.\Get-IntuneDeviceHealth.ps1 -DeviceId 'device-guid' -ExportPath 'C:\Reports\HealthReport.csv'
+.\Reporting\Get-IntuneDeviceHealth.ps1 -DeviceId 'device-guid' -ExportPath 'C:\Reports\HealthReport.csv'
 ```
 
 **Parameters:**
@@ -303,14 +336,14 @@ Performs comprehensive health checks on Intune-managed devices including enrollm
 
 ---
 
-#### `Test-IntuneEnrollment.ps1`
+#### `Test-IntuneEnrollment.ps1` — `Troubleshooting\`
 
 Tests if a device is properly enrolled in Intune by checking enrollment status, MDM authority, enrollment date, and Intune Management Extension service.
 
 **Usage:**
 
 ```powershell
-.\Test-IntuneEnrollment.ps1 [-Verbose]
+.\Troubleshooting\Test-IntuneEnrollment.ps1 [-Verbose]
 ```
 
 **Exit Codes:**
@@ -324,7 +357,7 @@ Tests if a device is properly enrolled in Intune by checking enrollment status, 
 
 ---
 
-#### `Start-MDMSync.ps1`
+#### `Start-MDMSync.ps1` — `Troubleshooting\`
 
 Initiates an MDM sync session between the device and Intune using Windows Management APIs.
 
@@ -332,10 +365,10 @@ Initiates an MDM sync session between the device and Intune using Windows Manage
 
 ```powershell
 # Default timeout (60 seconds)
-.\Start-MDMSync.ps1
+.\Troubleshooting\Start-MDMSync.ps1
 
 # Custom timeout and check interval
-.\Start-MDMSync.ps1 -TimeoutSeconds 120 -CheckIntervalSeconds 10
+.\Troubleshooting\Start-MDMSync.ps1 -TimeoutSeconds 120 -CheckIntervalSeconds 10
 ```
 
 **Exit Codes:**
@@ -355,16 +388,16 @@ Initiates an MDM sync session between the device and Intune using Windows Manage
 
 ### Reporting & Analysis
 
-Scripts for generating reports and analyzing Intune deployments.
+Scripts for generating reports and analyzing Intune deployments. These scripts live in the `Reporting\` directory.
 
-#### `Get-IntuneAllAppsAssignmentDetails.ps1`
+#### `Get-IntuneAllAppsAssignmentDetails.ps1` — `Reporting\`
 
 Retrieves all applications published in Microsoft Intune and exports their assignment details to a CSV file.
 
 **Usage:**
 
 ```powershell
-.\Get-IntuneAllAppsAssignmentDetails.ps1 `
+.\Reporting\Get-IntuneAllAppsAssignmentDetails.ps1 `
     -AppId 'app-id' `
     -TenantId 'tenant-id' `
     -ClientSecret 'secret' `
@@ -380,7 +413,7 @@ Retrieves all applications published in Microsoft Intune and exports their assig
 
 ---
 
-#### `Get-IntunePolicyAssignments.ps1`
+#### `Get-IntunePolicyAssignments.ps1` — `Reporting\`
 
 Retrieves all Intune policy assignments including configuration profiles and compliance policies with their target groups.
 
@@ -388,13 +421,13 @@ Retrieves all Intune policy assignments including configuration profiles and com
 
 ```powershell
 # Get all policy assignments
-.\Get-IntunePolicyAssignments.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntunePolicyAssignments.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Get only configuration profiles
-.\Get-IntunePolicyAssignments.ps1 -PolicyType "Configuration" -ExportPath 'C:\Reports\ConfigProfiles.csv'
+.\Reporting\Get-IntunePolicyAssignments.ps1 -PolicyType "Configuration" -ExportPath 'C:\Reports\ConfigProfiles.csv'
 
 # Get only compliance policies
-.\Get-IntunePolicyAssignments.ps1 -PolicyType "Compliance" -ExportPath 'C:\Reports\CompliancePolicies.csv'
+.\Reporting\Get-IntunePolicyAssignments.ps1 -PolicyType "Compliance" -ExportPath 'C:\Reports\CompliancePolicies.csv'
 ```
 
 **Parameters:**
@@ -407,7 +440,7 @@ Retrieves all Intune policy assignments including configuration profiles and com
 
 ---
 
-#### `Get-IntuneWin32AppDetails.ps1`
+#### `Get-IntuneWin32AppDetails.ps1` — `Reporting\`
 
 Retrieves detailed information about Win32 app deployments including installation status, assignment details, and device installation status.
 
@@ -415,13 +448,13 @@ Retrieves detailed information about Win32 app deployments including installatio
 
 ```powershell
 # Get all Win32 apps
-.\Get-IntuneWin32AppDetails.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Get-IntuneWin32AppDetails.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Get specific app
-.\Get-IntuneWin32AppDetails.ps1 -IntuneAppId 'app-guid' -ExportPath 'C:\Reports\AppDetails.csv'
+.\Reporting\Get-IntuneWin32AppDetails.ps1 -IntuneAppId 'app-guid' -ExportPath 'C:\Reports\AppDetails.csv'
 
 # Get app with device installation status
-.\Get-IntuneWin32AppDetails.ps1 -IntuneAppId 'app-guid' -DeviceId 'device-guid' -ExportPath 'C:\Reports\AppStatus.csv'
+.\Reporting\Get-IntuneWin32AppDetails.ps1 -IntuneAppId 'app-guid' -DeviceId 'device-guid' -ExportPath 'C:\Reports\AppStatus.csv'
 ```
 
 **Parameters:**
@@ -435,7 +468,7 @@ Retrieves detailed information about Win32 app deployments including installatio
 
 ---
 
-#### `Export-IntuneDeviceReport.ps1`
+#### `Export-IntuneDeviceReport.ps1` — `Reporting\`
 
 Exports comprehensive device information to CSV or JSON format including device details, compliance status, policy assignments, and configuration profile states.
 
@@ -443,10 +476,10 @@ Exports comprehensive device information to CSV or JSON format including device 
 
 ```powershell
 # Export all devices to CSV
-.\Export-IntuneDeviceReport.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
+.\Reporting\Export-IntuneDeviceReport.ps1 -AppId 'app-id' -TenantId 'tenant-id' -ClientSecret 'secret'
 
 # Export specific device to JSON
-.\Export-IntuneDeviceReport.ps1 `
+.\Reporting\Export-IntuneDeviceReport.ps1 `
     -DeviceId 'device-guid' `
     -Format 'JSON' `
     -OutputPath 'C:\Reports\DeviceReport.json' `
@@ -466,7 +499,7 @@ Exports comprehensive device information to CSV or JSON format including device 
 
 ---
 
-#### `Get-IntuneDeviceLogs.ps1`
+#### `Get-IntuneDeviceLogs.ps1` — `Troubleshooting\`
 
 Collects Intune-related logs from the device including Intune Management Extension logs, MDM enrollment registry information, and Windows Event Logs.
 
@@ -474,10 +507,10 @@ Collects Intune-related logs from the device including Intune Management Extensi
 
 ```powershell
 # Collect logs to default location
-.\Get-IntuneDeviceLogs.ps1
+.\Troubleshooting\Get-IntuneDeviceLogs.ps1
 
 # Collect logs with Event Logs to custom location
-.\Get-IntuneDeviceLogs.ps1 -OutputPath 'C:\Logs\Intune' -IncludeEventLogs
+.\Troubleshooting\Get-IntuneDeviceLogs.ps1 -OutputPath 'C:\Logs\Intune' -IncludeEventLogs
 ```
 
 **Parameters:**
@@ -497,16 +530,16 @@ Collects Intune-related logs from the device including Intune Management Extensi
 
 ### Service Management
 
-Scripts for managing Windows services related to Intune and security.
+Scripts for managing Windows services related to Intune and security. These scripts live in the `Security\` directory.
 
-#### `Disable-PrintSpoolerService.ps1`
+#### `Disable-PrintSpoolerService.ps1` — `Security\`
 
 Disables the Print Spooler service to mitigate PrintNightmare vulnerabilities.
 
 **Usage:**
 
 ```powershell
-.\Disable-PrintSpoolerService.ps1 [-WhatIf]
+.\Security\Disable-PrintSpoolerService.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -524,14 +557,14 @@ Disables the Print Spooler service to mitigate PrintNightmare vulnerabilities.
 
 ---
 
-#### `Enable-PrintSpoolerService.ps1`
+#### `Enable-PrintSpoolerService.ps1` — `Security\`
 
 Enables the Print Spooler service and sets it to start automatically.
 
 **Usage:**
 
 ```powershell
-.\Enable-PrintSpoolerService.ps1 [-WhatIf]
+.\Security\Enable-PrintSpoolerService.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -547,14 +580,14 @@ Enables the Print Spooler service and sets it to start automatically.
 
 ---
 
-#### `Disable-SmartCardLogonEnforcement.ps1`
+#### `Disable-SmartCardLogonEnforcement.ps1` — `Security\`
 
 Disables smart card logon enforcement by modifying registry keys and disabling the Smart Card Policy Service.
 
 **Usage:**
 
 ```powershell
-.\Disable-SmartCardLogonEnforcement.ps1 [-WhatIf]
+.\Security\Disable-SmartCardLogonEnforcement.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -572,14 +605,14 @@ Disables smart card logon enforcement by modifying registry keys and disabling t
 
 ---
 
-#### `Enable-SmartCardLogonEnforcement.ps1`
+#### `Enable-SmartCardLogonEnforcement.ps1` — `Security\`
 
 Enables smart card logon enforcement by modifying registry keys and enabling the Smart Card Policy Service.
 
 **Usage:**
 
 ```powershell
-.\Enable-SmartCardLogonEnforcement.ps1 [-WhatIf]
+.\Security\Enable-SmartCardLogonEnforcement.ps1 [-WhatIf]
 ```
 
 **Exit Codes:**
@@ -599,9 +632,9 @@ Enables smart card logon enforcement by modifying registry keys and enabling the
 
 ### Connectivity & Testing
 
-Scripts for testing connectivity and enrollment status.
+Scripts for testing connectivity and enrollment status. These scripts live in the `Troubleshooting\` directory.
 
-#### `Test-IntuneConnectivity.ps1`
+#### `Test-IntuneConnectivity.ps1` — `Troubleshooting\`
 
 Tests connectivity to Microsoft Intune and Microsoft 365 endpoints, displays network configuration information, and exports results to CSV.
 
@@ -609,10 +642,10 @@ Tests connectivity to Microsoft Intune and Microsoft 365 endpoints, displays net
 
 ```powershell
 # Test connectivity
-.\Test-IntuneConnectivity.ps1
+.\Troubleshooting\Test-IntuneConnectivity.ps1
 
 # Test with export
-.\Test-IntuneConnectivity.ps1 -ExportPath 'C:\Reports\Connectivity.csv'
+.\Troubleshooting\Test-IntuneConnectivity.ps1 -ExportPath 'C:\Reports\Connectivity.csv'
 ```
 
 **Parameters:**
@@ -628,7 +661,7 @@ Tests connectivity to Microsoft Intune and Microsoft 365 endpoints, displays net
 
 ## Common Module
 
-### `IntuneCommon.psm1`
+### `IntuneCommon.psm1` — `Common\`
 
 A PowerShell module containing shared functions used across multiple scripts:
 
@@ -641,7 +674,7 @@ A PowerShell module containing shared functions used across multiple scripts:
 **Usage:**
 
 ```powershell
-Import-Module .\IntuneCommon.psm1
+Import-Module .\Common\IntuneCommon.psm1
 ```
 
 The module is automatically used by scripts that require Graph API access. You can also use it directly in your own scripts.
@@ -654,7 +687,7 @@ The module is automatically used by scripts that require Graph API access. You c
 
 ```powershell
 # Export all devices to CSV with full details
-.\Export-IntuneDeviceReport.ps1 `
+.\Reporting\Export-IntuneDeviceReport.ps1 `
     -AppId $env:INTUNE_APP_ID `
     -TenantId $env:INTUNE_TENANT_ID `
     -ClientSecret $env:INTUNE_CLIENT_SECRET `
@@ -665,7 +698,7 @@ The module is automatically used by scripts that require Graph API access. You c
 
 ```powershell
 # Get compliance status for all devices owned by a user
-.\Get-IntuneDeviceCompliance.ps1 `
+.\Reporting\Get-IntuneDeviceCompliance.ps1 `
     -UserPrincipalName "john.doe@contoso.com" `
     -ExportPath "C:\Reports\JohnDoe_Compliance.csv" `
     -AppId $env:INTUNE_APP_ID `
@@ -677,7 +710,7 @@ The module is automatically used by scripts that require Graph API access. You c
 
 ```powershell
 # Check health for all devices and export results
-.\Get-IntuneDeviceHealth.ps1 `
+.\Reporting\Get-IntuneDeviceHealth.ps1 `
     -ExportPath "C:\Reports\DeviceHealth_$(Get-Date -Format 'yyyyMMdd').csv" `
     -AppId $env:INTUNE_APP_ID `
     -TenantId $env:INTUNE_TENANT_ID `
@@ -688,11 +721,11 @@ The module is automatically used by scripts that require Graph API access. You c
 
 ```powershell
 # First, detect the issue
-.\Detect-OfficeUpdateChannel.ps1
+.\Detection\Detect-OfficeUpdateChannel.ps1
 
 # If detection returns exit code 1, run remediation
 if ($LASTEXITCODE -eq 1) {
-    .\Set-OfficeUpdateChannel.ps1
+    .\Remediation\Set-OfficeUpdateChannel.ps1
 }
 ```
 
@@ -700,7 +733,7 @@ if ($LASTEXITCODE -eq 1) {
 
 ```powershell
 # Collect all Intune-related logs
-.\Get-IntuneDeviceLogs.ps1 `
+.\Troubleshooting\Get-IntuneDeviceLogs.ps1 `
     -OutputPath "C:\Logs\Intune_$(Get-Date -Format 'yyyyMMdd_HHmmss')" `
     -IncludeEventLogs
 ```
@@ -751,7 +784,7 @@ ScriptName: Failed to perform action - Error details
 Use the `-Verbose` parameter to get detailed information:
 
 ```powershell
-.\Get-IntuneDeviceDetails.ps1 -DeviceId 'guid' -Verbose
+.\Reporting\Get-IntuneDeviceDetails.ps1 -DeviceId 'guid' -Verbose
 ```
 
 ---
@@ -829,28 +862,28 @@ When contributing to this repository:
 
 ## Script Index
 
-| Script Name | Category | Requires Admin | Requires Graph API | Description |
-|------------|----------|----------------|---------------------|-------------|
-| `Detect-MultipleIntuneMDMCert.ps1` | Detection | No | No | Detects multiple Intune MDM certificates |
-| `Repair-MultipleIntuneMDMCert.ps1` | Remediation | Yes | No | Removes duplicate Intune MDM certificates |
-| `Detect-OfficeUpdateChannel.ps1` | Detection | No | No | Detects Office update channel |
-| `Set-OfficeUpdateChannel.ps1` | Remediation | Yes | No | Sets Office to Semi-Annual channel |
-| `Get-IntuneDeviceDetails.ps1` | Reporting | No | Yes | Retrieves device details |
-| `Get-IntuneDeviceCompliance.ps1` | Reporting | No | Yes | Retrieves device compliance status |
-| `Get-IntuneDeviceHealth.ps1` | Reporting | No | Yes | Performs device health checks |
-| `Test-IntuneEnrollment.ps1` | Testing | No | No | Tests device enrollment status |
-| `Start-MDMSync.ps1` | Management | No | No | Initiates MDM sync session |
-| `Get-IntuneAllAppsAssignmentDetails.ps1` | Reporting | No | Yes | Retrieves app assignment details |
-| `Get-IntunePolicyAssignments.ps1` | Reporting | No | Yes | Retrieves policy assignments |
-| `Get-IntuneWin32AppDetails.ps1` | Reporting | No | Yes | Retrieves Win32 app details |
-| `Export-IntuneDeviceReport.ps1` | Reporting | No | Yes | Exports comprehensive device reports |
-| `Get-IntuneDeviceLogs.ps1` | Reporting | Yes | No | Collects Intune-related logs |
-| `Disable-PrintSpoolerService.ps1` | Service Management | Yes | No | Disables Print Spooler service |
-| `Enable-PrintSpoolerService.ps1` | Service Management | Yes | No | Enables Print Spooler service |
-| `Disable-SmartCardLogonEnforcement.ps1` | Service Management | Yes | No | Disables smart card logon enforcement |
-| `Enable-SmartCardLogonEnforcement.ps1` | Service Management | Yes | No | Enables smart card logon enforcement |
-| `Test-IntuneConnectivity.ps1` | Testing | No | No | Tests connectivity to Intune endpoints |
-| `IntuneCommon.psm1` | Module | No | No | Common functions module |
+| Script Name | Directory | Category | Requires Admin | Requires Graph API | Description |
+|------------|-----------|----------|----------------|---------------------|-------------|
+| `Detect-MultipleIntuneMDMCert.ps1` | `Detection\` | Detection | No | No | Detects multiple Intune MDM certificates |
+| `Repair-MultipleIntuneMDMCert.ps1` | `Remediation\` | Remediation | Yes | No | Removes duplicate Intune MDM certificates |
+| `Detect-OfficeUpdateChannel.ps1` | `Detection\` | Detection | No | No | Detects Office update channel |
+| `Set-OfficeUpdateChannel.ps1` | `Remediation\` | Remediation | Yes | No | Sets Office to Semi-Annual channel |
+| `Get-IntuneDeviceDetails.ps1` | `Reporting\` | Reporting | No | Yes | Retrieves device details |
+| `Get-IntuneDeviceCompliance.ps1` | `Reporting\` | Reporting | No | Yes | Retrieves device compliance status |
+| `Get-IntuneDeviceHealth.ps1` | `Reporting\` | Reporting | No | Yes | Performs device health checks |
+| `Test-IntuneEnrollment.ps1` | `Troubleshooting\` | Testing | No | No | Tests device enrollment status |
+| `Start-MDMSync.ps1` | `Troubleshooting\` | Management | No | No | Initiates MDM sync session |
+| `Get-IntuneAllAppsAssignmentDetails.ps1` | `Reporting\` | Reporting | No | Yes | Retrieves app assignment details |
+| `Get-IntunePolicyAssignments.ps1` | `Reporting\` | Reporting | No | Yes | Retrieves policy assignments |
+| `Get-IntuneWin32AppDetails.ps1` | `Reporting\` | Reporting | No | Yes | Retrieves Win32 app details |
+| `Export-IntuneDeviceReport.ps1` | `Reporting\` | Reporting | No | Yes | Exports comprehensive device reports |
+| `Get-IntuneDeviceLogs.ps1` | `Troubleshooting\` | Troubleshooting | Yes | No | Collects Intune-related logs |
+| `Disable-PrintSpoolerService.ps1` | `Security\` | Service Management | Yes | No | Disables Print Spooler service |
+| `Enable-PrintSpoolerService.ps1` | `Security\` | Service Management | Yes | No | Enables Print Spooler service |
+| `Disable-SmartCardLogonEnforcement.ps1` | `Security\` | Service Management | Yes | No | Disables smart card logon enforcement |
+| `Enable-SmartCardLogonEnforcement.ps1` | `Security\` | Service Management | Yes | No | Enables smart card logon enforcement |
+| `Test-IntuneConnectivity.ps1` | `Troubleshooting\` | Testing | No | No | Tests connectivity to Intune endpoints |
+| `IntuneCommon.psm1` | `Common\` | Module | No | No | Common functions module |
 
 ---
 
