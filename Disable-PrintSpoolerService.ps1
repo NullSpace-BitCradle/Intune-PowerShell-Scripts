@@ -8,10 +8,6 @@
     This script stops the Print Spooler service if it's running and sets its startup type to Disabled.
     Requires administrator privileges.
 
-.PARAMETER WhatIf
-    Shows what would happen if the script runs. The script is not run.
-    Displays which changes would be made without actually making them.
-
 .EXAMPLE
     .\Disable-PrintSpoolerService.ps1
 
@@ -24,10 +20,7 @@
 
 [CmdletBinding(SupportsShouldProcess=$true)]
 # Define script parameters
-param(
-    [Parameter(Mandatory=$false)]
-    [switch]$WhatIf
-)
+param()
 
 try {
     # Check if running as administrator
@@ -48,10 +41,7 @@ try {
     Write-Host "Current startup type: $($service.StartType)" -ForegroundColor Yellow
 
     if ($service.Status -eq "Running") {
-        if ($WhatIf) {
-            Write-Host "What if: Would stop Print Spooler service" -ForegroundColor Yellow
-        }
-        else {
+        if ($PSCmdlet.ShouldProcess("Print Spooler service", "Stop service")) {
             Write-Host "Stopping Print Spooler service..." -ForegroundColor Yellow
             Stop-Service -Name "Spooler" -Force -ErrorAction Stop
             Write-Host "Print Spooler service stopped successfully." -ForegroundColor Green
@@ -61,19 +51,16 @@ try {
         Write-Host "Print Spooler service is not running." -ForegroundColor Yellow
     }
 
-    if ($WhatIf) {
-        Write-Host "What if: Would set Print Spooler startup type to Disabled" -ForegroundColor Yellow
-        exit 0
+    if ($PSCmdlet.ShouldProcess("Print Spooler service", "Set startup type to Disabled")) {
+        Write-Host "Setting Print Spooler startup type to Disabled..." -ForegroundColor Yellow
+        Set-Service -Name "Spooler" -StartupType Disabled -ErrorAction Stop
+        Write-Host "Print Spooler startup type set to Disabled successfully." -ForegroundColor Green
+
+        # Verify the change
+        $service = Get-Service -Name "Spooler"
+        Write-Host "Final status: $($service.Status)" -ForegroundColor Cyan
+        Write-Host "Final startup type: $($service.StartType)" -ForegroundColor Cyan
     }
-
-    Write-Host "Setting Print Spooler startup type to Disabled..." -ForegroundColor Yellow
-    Set-Service -Name "Spooler" -StartupType Disabled -ErrorAction Stop
-    Write-Host "Print Spooler startup type set to Disabled successfully." -ForegroundColor Green
-
-    # Verify the change
-    $service = Get-Service -Name "Spooler"
-    Write-Host "Final status: $($service.Status)" -ForegroundColor Cyan
-    Write-Host "Final startup type: $($service.StartType)" -ForegroundColor Cyan
 } catch {
     Write-Error "Disable-PrintSpoolerService: Failed to disable Print Spooler service - $($_.Exception.Message)"
     if ($PSBoundParameters.ContainsKey('Verbose')) {

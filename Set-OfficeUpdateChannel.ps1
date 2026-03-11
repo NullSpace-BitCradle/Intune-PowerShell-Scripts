@@ -10,10 +10,6 @@
     with Detect-OfficeUpdateChannel.ps1. It should be run when Office is not on
     the Semi-Annual channel or not on the latest version.
 
-.PARAMETER WhatIf
-    Shows what would happen if the script runs. The script is not run.
-    Displays which changes would be made without actually making them.
-
 .EXAMPLE
     .\Set-OfficeUpdateChannel.ps1
 
@@ -30,10 +26,7 @@
 
 [CmdletBinding(SupportsShouldProcess=$true)]
 # Define script parameters
-param(
-    [Parameter(Mandatory=$false)]
-    [switch]$WhatIf
-)
+param()
 
 # Main script execution wrapped in try-catch for error handling
 try
@@ -141,12 +134,9 @@ try
     else {
         Write-Host "Current channel: $currentChannel" -ForegroundColor Yellow
         
-        if ($WhatIf) {
-            Write-Host "What if: Would configure Office to use Semi-Annual channel ($semiAnnualCDN)" -ForegroundColor Yellow
-        }
-        else {
+        if ($PSCmdlet.ShouldProcess("Office CDNBaseUrl registry value", "Configure Office to use Semi-Annual channel ($semiAnnualCDN)")) {
             Write-Host "Configuring Office to use Semi-Annual channel..." -ForegroundColor Yellow
-            
+
             # Set the CDN base URL to Semi-Annual channel
             # This configures Office to use the Semi-Annual update channel
             Set-ItemProperty -Path $officeConfigPath -Name "CDNBaseUrl" -Value $semiAnnualCDN -Force -ErrorAction Stop
@@ -154,32 +144,29 @@ try
         }
     }
 
-    if ($WhatIf) {
-        Write-Host "What if: Would trigger Office update to latest version ($latestVersion)" -ForegroundColor Yellow
-        exit 0
-    }
-    
     # Trigger Office update to get the latest version
     # Use Office Click-to-Run update mechanism to update Office
-    Write-Host "Triggering Office update to latest version..." -ForegroundColor Yellow
-    
-    # Check if OfficeClickToRun.exe exists (Office update executable)
-    $officeUpdatePath = "${env:ProgramFiles}\Microsoft Office\Office16\OfficeClickToRun.exe"
-    if (-not (Test-Path -Path $officeUpdatePath)) {
-        # Try alternative path for 64-bit Office on 32-bit system
-        $officeUpdatePath = "${env:ProgramFiles(x86)}\Microsoft Office\Office16\OfficeClickToRun.exe"
-    }
-    
-    if (Test-Path -Path $officeUpdatePath) {
-        # Run Office update in the background
-        # /update user: This updates Office for the current user
-        # /update user displaylevel=false: Runs update silently
-        Write-Host "Starting Office update process..." -ForegroundColor Yellow
-        Start-Process -FilePath $officeUpdatePath -ArgumentList "/update", "user", "displaylevel=false" -NoNewWindow -Wait -ErrorAction Stop
-        Write-Host "Office update process completed." -ForegroundColor Green
-    }
-    else {
-        Write-Warning "OfficeClickToRun.exe not found. Office may update automatically on next check."
+    if ($PSCmdlet.ShouldProcess("Office installation", "Trigger update to latest version ($latestVersion)")) {
+        Write-Host "Triggering Office update to latest version..." -ForegroundColor Yellow
+
+        # Check if OfficeClickToRun.exe exists (Office update executable)
+        $officeUpdatePath = "${env:ProgramFiles}\Microsoft Office\Office16\OfficeClickToRun.exe"
+        if (-not (Test-Path -Path $officeUpdatePath)) {
+            # Try alternative path for 64-bit Office on 32-bit system
+            $officeUpdatePath = "${env:ProgramFiles(x86)}\Microsoft Office\Office16\OfficeClickToRun.exe"
+        }
+
+        if (Test-Path -Path $officeUpdatePath) {
+            # Run Office update in the background
+            # /update user: This updates Office for the current user
+            # /update user displaylevel=false: Runs update silently
+            Write-Host "Starting Office update process..." -ForegroundColor Yellow
+            Start-Process -FilePath $officeUpdatePath -ArgumentList "/update", "user", "displaylevel=false" -NoNewWindow -Wait -ErrorAction Stop
+            Write-Host "Office update process completed." -ForegroundColor Green
+        }
+        else {
+            Write-Warning "OfficeClickToRun.exe not found. Office may update automatically on next check."
+        }
     }
 
     # Verify the remediation was successful

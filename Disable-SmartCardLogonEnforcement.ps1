@@ -10,10 +10,6 @@
     and disables automatic lock on smart card removal. The script also disables the Smart Card
     Policy Service.
 
-.PARAMETER WhatIf
-    Shows what would happen if the script runs. The script is not run.
-    Displays which changes would be made without actually making them.
-
 .PARAMETER KeepLogs
     Keeps the log file after script execution instead of removing it.
     Useful for troubleshooting purposes.
@@ -34,9 +30,6 @@
 
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
-    [Parameter(Mandatory=$false)]
-    [switch]$WhatIf,
-    
     [Parameter(Mandatory=$false)]
     [switch]$KeepLogs
 )
@@ -121,10 +114,7 @@ try
     # Set the scforceoption registry value to 0
     # Value 0 = Allow password logon (smart card not required)
     # Value 1 = Require smart card for interactive logon
-    if ($WhatIf) {
-        Write-Log "What if: Would reset Reg key scforceoption with value 0"
-    }
-    else {
+    if ($PSCmdlet.ShouldProcess('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\scforceoption', 'Set value to 0 (allow password logon)')) {
         Write-Log "Reg path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System found, resetting Reg key scforceoption with value 0"
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'scforceoption' -Value 0 -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Log "Reg key value resetted to default"
@@ -157,10 +147,7 @@ try
     # Set the ScRemoveOption registry value to 0
     # Value 0 = Do not lock workstation when smart card is removed
     # Value 1 = Lock workstation when smart card is removed
-    if ($WhatIf) {
-        Write-Log "What if: Would update Reg key ScRemoveOption with value 0"
-    }
-    else {
+    if ($PSCmdlet.ShouldProcess('HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\ScRemoveOption', 'Set value to 0 (do not lock on smart card removal)')) {
         Write-Log "Reg path HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon found, updating Reg key ScRemoveOption with value 0"
         New-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'ScRemoveOption' -Value 0 -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Log "Reg key value updated"
@@ -193,14 +180,11 @@ try
     # Set the Start registry value to 4 (Disabled)
     # Service startup types: 0=Boot, 1=System, 2=Auto, 3=Manual, 4=Disabled
     # Setting to 4 (Disabled) prevents the service from starting
-    if ($WhatIf) {
-        Write-Log "What if: Would update Reg key Start with value 4 (Disabled)"
-    }
-    else {
+    if ($PSCmdlet.ShouldProcess('HKLM:\SYSTEM\CurrentControlSet\Services\SCPolicySvc', 'Set Start value to 4 (Disabled) and disable SCPolicySvc')) {
         Write-Log "Reg path HKLM:\SYSTEM\CurrentControlSet\Services\SCPolicySvc found, updating Reg key Start with value 4"
         New-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\SCPolicySvc' -Name 'Start' -Value 4 -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Log "Reg key value updated"
-        
+
         # Also set the service startup type using Set-Service to ensure immediate effect
         try {
             Set-Service -Name "SCPolicySvc" -StartupType Disabled -ErrorAction SilentlyContinue
@@ -226,20 +210,15 @@ catch
 # This is done to clean up temporary log files
 # -ErrorAction SilentlyContinue prevents errors if the file doesn't exist
 # Only remove if -KeepLogs is not specified
-if (-not $WhatIf -and -not $KeepLogs) {
-    $logFilePath = Join-Path $Log_Path "win32-Disable_SmartCardLogon_Enforcement.log"
+if (-not $WhatIfPreference -and -not $KeepLogs) {
+    $logFilePath = Join-Path $Log_Path $Log_FileName
     Remove-Item -Path $logFilePath -Force -ErrorAction SilentlyContinue
 }
 elseif ($KeepLogs) {
-    $logFilePath = Join-Path $Log_Path "win32-Disable_SmartCardLogon_Enforcement.log"
+    $logFilePath = Join-Path $Log_Path $Log_FileName
     Write-Log "Log file kept at: $logFilePath"
 }
 
 # Log completion and exit with success code
-if ($WhatIf) {
-    Write-Log "What if: Script would complete successfully."
-}
-else {
-    Write-Log "Script completed successfully."
-}
+Write-Log "Script completed successfully."
 exit 0

@@ -174,74 +174,12 @@ if ($ExportPath) {
     }
 }
 
-# Function to invoke Graph API with retry logic
-# Handles transient failures (429, 503, etc.) with exponential backoff
-function Invoke-GraphApiWithRetry {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$Uri,
-        
-        [Parameter(Mandatory=$true)]
-        [hashtable]$Headers,
-        
-        [Parameter(Mandatory=$false)]
-        [string]$Method = "Get",
-        
-        [Parameter(Mandatory=$false)]
-        [int]$MaxRetriesParam = $MaxRetries,
-        
-        [Parameter(Mandatory=$false)]
-        [int]$InitialDelaySecondsParam = $InitialDelaySeconds
-    )
-    
-    $retryCount = 0
-    $delaySeconds = $InitialDelaySecondsParam
-    
-    while ($retryCount -le $MaxRetriesParam) {
-        try {
-            $response = Invoke-RestMethod -Uri $Uri -Headers $Headers -Method $Method -ErrorAction Stop
-            return $response
-        }
-        catch {
-            $statusCode = $_.Exception.Response.StatusCode.value__
-            
-            # Check if this is a retryable error (429 Too Many Requests, 503 Service Unavailable, 502 Bad Gateway, 504 Gateway Timeout)
-            if ($statusCode -in @(429, 502, 503, 504) -and $retryCount -lt $MaxRetriesParam) {
-                $retryCount++
-                
-                # Check for Retry-After header (429 Too Many Requests)
-                if ($statusCode -eq 429 -and $_.Exception.Response.Headers['Retry-After']) {
-                    $retryAfter = $_.Exception.Response.Headers['Retry-After']
-                    if ($retryAfter -match '^\d+$') {
-                        $delaySeconds = [int]$retryAfter
-                        Write-Verbose "Graph API call rate limited. Using Retry-After header value: $delaySeconds seconds (attempt $retryCount of $MaxRetriesParam)..."
-                    }
-                    else {
-                        Write-Verbose "Graph API call failed with status $statusCode. Retrying in $delaySeconds seconds (attempt $retryCount of $MaxRetriesParam)..."
-                    }
-                }
-                else {
-                    Write-Verbose "Graph API call failed with status $statusCode. Retrying in $delaySeconds seconds (attempt $retryCount of $MaxRetriesParam)..."
-                }
-                
-                Start-Sleep -Seconds $delaySeconds
-                # Exponential backoff: double the delay for next retry (unless Retry-After was used)
-                if ($statusCode -ne 429 -or -not $_.Exception.Response.Headers['Retry-After']) {
-                    $delaySeconds = $delaySeconds * 2
-                }
-            }
-            else {
-                # Not a retryable error or max retries reached
-                throw
-            }
-        }
-    }
-}
-
 # Main script execution wrapped in try-catch for error handling
 try
 {
+    # Import shared module for Graph API utilities
+    Import-Module "$PSScriptRoot\IntuneCommon.psm1" -Force -ErrorAction Stop
+
     # Connect to Microsoft Graph API using app registration credentials
     # This authenticates the script to access Intune data via Graph API
     Write-Host "Connecting to Microsoft Graph API..." -ForegroundColor Yellow

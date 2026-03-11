@@ -10,10 +10,6 @@
     that pairs with Detect-MultipleIntuneMDMCert.ps1. It should be run when multiple
     certificates are detected.
 
-.PARAMETER WhatIf
-    Shows what would happen if the script runs. The script is not run.
-    Displays which certificates would be removed without actually removing them.
-
 .EXAMPLE
     .\Repair-MultipleIntuneMDMCert.ps1
 
@@ -29,10 +25,7 @@
 
 [CmdletBinding(SupportsShouldProcess=$true)]
 # Define script parameters
-param(
-    [Parameter(Mandatory=$false)]
-    [switch]$WhatIf
-)
+param()
 
 # Main script execution wrapped in try-catch for error handling
 try
@@ -87,26 +80,17 @@ try
         {
             $certToRemove = $sortedCertificates[$i]
             
-            if ($WhatIf) {
-                Write-Host "What if: Would remove duplicate certificate (Thumbprint: $($certToRemove.Thumbprint), NotBefore: $($certToRemove.NotBefore))" -ForegroundColor Yellow
-            }
-            else {
+            if ($PSCmdlet.ShouldProcess("certificate (Thumbprint: $($certToRemove.Thumbprint), NotBefore: $($certToRemove.NotBefore))", "Remove duplicate certificate")) {
                 Write-Host "Removing duplicate certificate (Thumbprint: $($certToRemove.Thumbprint), NotBefore: $($certToRemove.NotBefore))" -ForegroundColor Yellow
-                
+
                 # Remove the certificate from the certificate store
                 # This permanently deletes the certificate
                 Remove-Item -Path $certToRemove.PSPath -Force -ErrorAction Stop
-                
+
                 Write-Host "Successfully removed certificate with Thumbprint: $($certToRemove.Thumbprint)" -ForegroundColor Green
             }
         }
-        
-        if ($WhatIf) {
-            Write-Host "`nWhat if: Would keep certificate (Thumbprint: $($certificateToKeep.Thumbprint))" -ForegroundColor Green
-            Write-Host "What if: Would remove $($sortedCertificates.Count - 1) duplicate certificate(s)" -ForegroundColor Yellow
-            exit 0
-        }
-        
+
         # Verify the remediation was successful
         # Query the certificate store again to confirm only one certificate remains
         $remainingCertificates = Get-ChildItem -Path $certStorePath -ErrorAction Stop | Where-Object {$_.Issuer -eq "CN=Microsoft Intune MDM Device CA"}

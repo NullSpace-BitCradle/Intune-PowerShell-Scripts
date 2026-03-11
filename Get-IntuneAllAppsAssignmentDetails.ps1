@@ -252,7 +252,7 @@ foreach ($App in $Apps)
                         "#microsoft.graph.macOSOfficeSuiteApp" { 'Intune MacOS Built-in M365 App for Enterprise' }
                         "#microsoft.graph.macOSPkgApp" { 'MacOS PKG' }
                         "#microsoft.graph.macOsVppApp" { 'MacOS VPP' }
-                        *default* { 'Unknown' }  # Fallback for unknown app types
+                        default { 'Unknown' }  # Fallback for unknown app types
     }
 
     # Display the app type

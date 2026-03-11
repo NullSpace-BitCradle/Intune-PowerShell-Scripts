@@ -1,0 +1,31 @@
+# PowerShell
+*.ps1xml
+*.pssc
+
+# Logs
+*.log
+logs/
+
+# Credentials and secrets
+*.pfx
+*.cer
+*.key
+*.pem
+*.credential
+*secret*
+*password*
+
+# Output files
+*.csv
+*.json
+!package.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
